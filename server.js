@@ -16,9 +16,9 @@ app.use(express.static(path.join(__dirname, 'frontend')));
 // ==================== MYSQL ====================
 const pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'u120682741_blockchain_user',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME || 'u120682741_blockchain_db',
+    user: process.env.DB_USER || 'u120682741_blockuser',
+    password: process.env.DB_PASSWORD || 'Gta@290499',
+    database: process.env.DB_NAME || 'u120682741_blockchain',
     waitForConnections: true,
     connectionLimit: 10
 });
