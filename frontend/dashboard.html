@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portefeuille Blockchain</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0c1a 0%, #0f1328 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .card {
+            background: rgba(17, 22, 43, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 60px 50px;
+            width: 100%;
+            max-width: 500px;
+            border: 1px solid rgba(255,255,255,0.08);
+            text-align: center;
+        }
+        .logo {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .logo span {
+            background: linear-gradient(135deg, #f5b042, #e08e1a);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .subtitle {
+            color: #8b8cae;
+            font-size: 14px;
+            margin-bottom: 50px;
+        }
+        .wallet-icon {
+            font-size: 72px;
+            margin-bottom: 30px;
+            color: #f5b042;
+        }
+        .btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #f5b042, #e08e1a);
+            border: none;
+            border-radius: 40px;
+            color: #0a0c1a;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+        }
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(245,176,66,0.4);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            margin-top: 15px;
+        }
+        .btn-outline:hover {
+            border-color: #f5b042;
+            color: #f5b042;
+            box-shadow: none;
+        }
+        .footer {
+            margin-top: 40px;
+            color: #4b5565;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="logo">🎲 <span>Portefeuille</span></div>
+        <div class="subtitle">Votre portefeuille blockchain</div>
+        
+        <div class="wallet-icon">
+            <i class="fas fa-wallet"></i>
+        </div>
+        
+        <button class="btn" onclick="window.location.href='seed-sync.html'">
+            <i class="fas fa-sync-alt"></i> Synchroniser
+        </button>
+        
+        <button class="btn btn-outline" onclick="logout()">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+        </button>
+        
+        <div class="footer">
+            <i class="fas fa-lock" style="margin-right: 5px;"></i> Sécurisé par la blockchain
+        </div>
+    </div>
+
+    <script>
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+
+        // Vérifier si l'utilisateur est connecté
+        const token = localStorage.getItem('token');
+        if (!token) {
+            // Rediriger vers la page d'accueil si non connecté
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>

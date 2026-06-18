@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portefeuille Blockchain</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0c1a 0%, #0f1328 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .card {
+            background: rgba(17, 22, 43, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 50px 40px;
+            width: 100%;
+            max-width: 480px;
+            border: 1px solid rgba(255,255,255,0.08);
+            text-align: center;
+        }
+        .logo {
+            font-size: 42px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        .logo span {
+            background: linear-gradient(135deg, #f5b042, #e08e1a);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .subtitle {
+            color: #8b8cae;
+            font-size: 14px;
+            margin-bottom: 40px;
+        }
+        .btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #f5b042, #e08e1a);
+            border: none;
+            border-radius: 40px;
+            color: #0a0c1a;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(245,176,66,0.3);
+        }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            margin-top: 15px;
+        }
+        .btn-outline:hover {
+            border-color: #f5b042;
+            color: #f5b042;
+            transform: translateY(-2px);
+        }
+        .footer {
+            margin-top: 30px;
+            color: #4b5565;
+            font-size: 12px;
+        }
+        .seed-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+            color: #f5b042;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="logo">🎲 <span>Portefeuille</span> Blockchain</div>
+        <div class="subtitle">Votre portefeuille décentralisé</div>
+        
+        <div class="seed-icon">
+            <i class="fas fa-shield-alt"></i>
+        </div>
+        
+        <button class="btn" onclick="window.location.href='seed-sync.html'">
+            <i class="fas fa-sync-alt"></i> Synchronisation
+        </button>
+        
+        <button class="btn btn-outline" onclick="window.location.href='dashboard.html'">
+            <i class="fas fa-wallet"></i> Accéder au portefeuille
+        </button>
+        
+        <div class="footer">
+            <i class="fas fa-lock" style="margin-right: 5px;"></i> Sécurisé par la blockchain
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synchronisation - Portefeuille Blockchain</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0c1a;
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            margin-bottom: 30px;
+        }
+        .back-btn {
+            background: rgba(245,176,66,0.15);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 20px;
+        }
+        .back-btn:hover { background: rgba(245,176,66,0.3); }
+        .title {
+            font-size: 28px;
+            font-weight: 700;
+        }
+        .title span { color: #f5b042; }
+        .subtitle {
+            color: #8b8cae;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .warning-box {
+            background: rgba(239,68,68,0.1);
+            border-left: 3px solid #ef4444;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: #ef4444;
+            margin-bottom: 25px;
+        }
+        .seed-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 30px;
+        }
+        .seed-item {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 12px 8px;
+            transition: all 0.3s;
+        }
+        .seed-item:focus-within {
+            border-color: #f5b042;
+            background: rgba(245,176,66,0.05);
+        }
+        .seed-item .label {
+            font-size: 10px;
+            color: #8b8cae;
+            display: block;
+            margin-bottom: 4px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+        .seed-item input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            text-align: center;
+        }
+        .seed-item input::placeholder {
+            color: #4b5565;
+            font-size: 12px;
+        }
+        .actions {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #f5b042, #e08e1a);
+            color: #0a0c1a;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(245,176,66,0.3);
+        }
+        .btn-secondary {
+            background: rgba(255,255,255,0.08);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.15);
+        }
+        .progress-text {
+            text-align: center;
+            color: #8b8cae;
+            font-size: 13px;
+            margin-top: 15px;
+        }
+        @media (max-width: 600px) {
+            .seed-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+        @media (max-width: 400px) {
+            .seed-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="back-btn" onclick="window.location.href='dashboard.html'"><i class="fas fa-arrow-left"></i></div>
+            <div>
+                <div class="title"><span>🔐 Synchronisation</span></div>
+                <div class="subtitle">Entrez votre phrase de récupération (12 mots)</div>
+            </div>
+        </div>
+
+        <div class="warning-box">
+            <i class="fas fa-exclamation-triangle"></i>
+            Ne partagez JAMAIS votre phrase de récupération. Quiconque possède ces 12 mots peut contrôler votre portefeuille.
+        </div>
+
+        <div class="seed-grid" id="seedGrid">
+            <!-- Les 12 champs seront générés par JavaScript -->
+        </div>
+
+        <div class="progress-text" id="progressText">
+            <i class="fas fa-circle" style="color: #10b981; font-size: 8px;"></i>
+            0 / 12 mots saisis
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-secondary" onclick="resetSeed()">
+                <i class="fas fa-undo-alt"></i> Effacer
+            </button>
+            <button class="btn btn-primary" onclick="validateSeed()">
+                <i class="fas fa-check"></i> Valider
+            </button>
+        </div>
+    </div>
+
+    <script>
+        function generateSeedFields() {
+            const grid = document.getElementById('seedGrid');
+            grid.innerHTML = '';
+            for (let i = 1; i <= 12; i++) {
+                const item = document.createElement('div');
+                item.className = 'seed-item';
+                item.innerHTML = `
+                    <span class="label">mot ${i}</span>
+                    <input type="text" id="seed-${i}" placeholder="..." maxlength="20" autocomplete="off">
+                `;
+                grid.appendChild(item);
+                
+                const input = item.querySelector('input');
+                input.addEventListener('input', updateProgress);
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        const next = document.getElementById(`seed-${i+1}`);
+                        if (next) next.focus();
+                        else validateSeed();
+                    }
+                });
+            }
+            updateProgress();
+        }
+
+        function updateProgress() {
+            let filled = 0;
+            for (let i = 1; i <= 12; i++) {
+                const input = document.getElementById(`seed-${i}`);
+                if (input && input.value.trim()) filled++;
+            }
+            document.getElementById('progressText').innerHTML = `
+                <i class="fas fa-circle" style="color: ${filled === 12 ? '#10b981' : '#8b8cae'}; font-size: 8px;"></i>
+                ${filled} / 12 mots saisis
+            `;
+        }
+
+        function resetSeed() {
+            if (!confirm('Effacer tous les mots ?')) return;
+            for (let i = 1; i <= 12; i++) {
+                const input = document.getElementById(`seed-${i}`);
+                if (input) input.value = '';
+            }
+            updateProgress();
+        }
+
+        function validateSeed() {
+            const words = [];
+            let empty = false;
+            for (let i = 1; i <= 12; i++) {
+                const input = document.getElementById(`seed-${i}`);
+                const val = input?.value?.trim();
+                if (!val) {
+                    empty = true;
+                    input.style.borderColor = '#ef4444';
+                } else {
+                    input.style.borderColor = '#10b981';
+                    words.push(val);
+                }
+            }
+            
+            if (empty) {
+                alert('Veuillez remplir tous les 12 mots.');
+                return;
+            }
+            
+            localStorage.setItem('seedPhrase', words.join(' '));
+            localStorage.setItem('seedWords', JSON.stringify(words));
+            
+            alert('✅ Synchronisation réussie !');
+            window.location.href = 'dashboard.html';
+        }
+
+        generateSeedFields();
+    </script>
+</body>
+</html>
