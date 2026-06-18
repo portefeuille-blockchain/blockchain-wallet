@@ -28,9 +28,13 @@
             text-align: center;
         }
         .logo {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
             font-size: 42px;
             font-weight: 700;
-            margin-bottom: 10px;
+            margin-bottom: 30px;
         }
         .logo span {
             background: linear-gradient(135deg, #f5b042, #e08e1a);
@@ -38,10 +42,17 @@
             background-clip: text;
             color: transparent;
         }
-        .subtitle {
-            color: #8b8cae;
-            font-size: 14px;
-            margin-bottom: 40px;
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: #ff0000;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            font-weight: 700;
+            color: white;
         }
         .btn {
             width: 100%;
@@ -63,17 +74,6 @@
             transform: translateY(-2px);
             box-shadow: 0 5px 20px rgba(245,176,66,0.3);
         }
-        .btn-outline {
-            background: transparent;
-            border: 1px solid rgba(255,255,255,0.2);
-            color: white;
-            margin-top: 15px;
-        }
-        .btn-outline:hover {
-            border-color: #f5b042;
-            color: #f5b042;
-            transform: translateY(-2px);
-        }
         .footer {
             margin-top: 30px;
             color: #4b5565;
@@ -88,8 +88,10 @@
 </head>
 <body>
     <div class="card">
-        <div class="logo">🎲 <span>Portefeuille</span> Blockchain</div>
-        <div class="subtitle">Votre portefeuille décentralisé</div>
+        <div class="logo">
+            <div class="logo-icon">B</div>
+            <span>Portefeuille Blockchain</span>
+        </div>
         
         <div class="seed-icon">
             <i class="fas fa-shield-alt"></i>

